@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+
+<title>Tier Maker – Manga Popularity 100</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
+  }
+
+  h2 {
+    margin: 0;
+    padding: 10px;
+    font-size: 20px;
+  }
+
+  .container {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    flex-direction: column;   /* susun vertikal */
+    max-width: 1600px;        /* sedikit diperkecil */
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .tier {
+    flex: 1;
+    background: #222;
+    border-radius: 6px;
+    padding: 8px;
+    min-height: 180px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .tier-label {
+    padding: 6px 10px;
+    font-weight: bold;
+    border-radius: 4px;
+    width: 160px;             /* samakan lebar label */
+    flex: 0 0 160px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    align-self: stretch;
+  }
+
+  .tier-label-text {
+    flex: 1;
+  }
+
+  .edit-tier-btn {
+    background: rgba(0,0,0,0.15);
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 4px 6px;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .edit-tier-btn:hover {
+    background: rgba(0,0,0,0.25);
+  }
+
+  .reveal-tier-btn {
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1;
+    margin-left: 4px;
+    white-space: nowrap;
+  }
+
+  .reveal-tier-btn:hover {
+    background: rgba(255,255,255,0.18);
+  }
+
+  .reveal-tier-btn.bottom { display: none; }
+
+  .tier-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 150px;
+    flex: 1;
+    align-items: flex-start;
+  }
+
+  .anime-card {
+    width: 90px;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .anime-card img {
+    width: 100%;
+    border-radius: 4px;
+  }
+
+  .anime-name {
+    font-size: 10px;
+    margin-top: 2px;
+    text-align: center;
+  }
+
+  #pool {
+    background: #1d1d1d;
+    padding: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    border-top: 2px solid #333;
+  }
+
+  /* Header selalu terlihat saat scroll */
+  .top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #111;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  /* Modal edit nama tier */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99;
+  }
+  .modal {
+    background: #222;
+    padding: 16px;
+    border-radius: 8px;
+    min-width: 260px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .modal h3 {
+    margin: 0 0 10px;
+  }
+  .modal input {
+    width: 100%;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #444;
+    background: #111;
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .btn.primary {
+    background: #1e90ff;
+    color: #fff;
+  }
+  .btn.secondary {
+    background: #444;
+    color: #fff;
+  }
+  .hidden {
+    display: none !important; /* ensure overrides any display from other classes */
+  }
+
+  /* Reveal overlay */
+  .reveal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.08), rgba(0,0,0,0.75));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 95;
+  }
+  /* (removed old modal grid styles) */
+  /* wiggle removed (no modal card grid) */
+
+  /* Zoomed magic card overlay */
+  .zoom-backdrop {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.85), rgba(0,0,0,0.95));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 110; /* above modal */
+  }
+  .zoom-card {
+    position: relative;
+    width: min(70vw, 420px);
+    aspect-ratio: 3/4.4;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.7), 0 0 60px rgba(39,117,252,0.5);
+    transform: perspective(1200px) rotateY(10deg) rotateX(6deg) scale(0.8);
+    animation: magicZoom 650ms ease forwards;
+  }
+  .zoom-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .zoom-title {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 10px 12px;
+    background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.75));
+    font-weight: 700;
+    text-align: center;
+  }
+  .zoom-glow {
+    position: absolute;
+    inset: -20%;
+    pointer-events: none;
+    background: conic-gradient(from 0deg, rgba(106,17,203,0.0), rgba(37,117,252,0.35), rgba(106,17,203,0.0));
+    filter: blur(20px);
+    animation: glowSpin 1.2s linear infinite;
+    mix-blend-mode: screen;
+  }
+  @keyframes magicZoom {
+    0% { transform: perspective(1200px) rotateY(16deg) rotateX(10deg) scale(0.6); opacity: 0; }
+    55% { transform: perspective(1200px) rotateY(4deg) rotateX(2deg) scale(1.03); opacity: 1; }
+    100% { transform: perspective(1200px) rotateY(0deg) rotateX(0deg) scale(1); }
+  }
+  @keyframes glowSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+  .reveal-card {
+    position: relative;
+    width: 220px;
+    height: 320px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: linear-gradient(135deg, #6a11cb, #2575fc);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 30px rgba(39,117,252,0.5);
+    transform: perspective(800px) rotateY(10deg) rotateX(5deg);
+  }
+  .reveal-card.animate {
+    animation: cardFlip 1.4s ease forwards;
+  }
+  .reveal-glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5), transparent 40%),
+                radial-gradient(circle at 70% 70%, rgba(255,255,255,0.35), transparent 45%),
+                linear-gradient(120deg, rgba(255,255,255,0.2), rgba(255,255,255,0));
+    filter: blur(2px);
+    mix-blend-mode: screen;
+    pointer-events: none;
+  }
+  .reveal-front {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: bold;
+    color: #fff;
+    letter-spacing: 1px;
+    text-shadow: 0 0 12px rgba(0,0,0,0.5);
+  }
+  @keyframes cardFlip {
+    0% { transform: perspective(800px) rotateY(10deg) rotateX(5deg) scale(0.9); opacity: 0; }
+    40% { transform: perspective(800px) rotateY(0deg) rotateX(0deg) scale(1.05); opacity: 1; }
+    70% { transform: perspective(800px) rotateY(0deg) rotateX(0deg) scale(1); }
+    100% { transform: perspective(800px) rotateY(0deg) rotateX(0deg) scale(1); }
+  }
+
+  .reveal-btn {
+    margin: 0 10px 6px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #1e90ff, #6a11cb);
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .reveal-btn:hover {
+    opacity: 0.95;
+  }
+</style>
+</head>
+
+<body>
+
+<div class="top-bar">
+  <h2 style="text-align:center;">Manga Popularity Tier Maker (Top 100)</h2>
+</div>
+
+<!-- TIERS -->
+<div class="container">
+
+  <div class="tier" data-tier="S">
+    <div class="tier-label" style="background:#ff4757">S – GG ANIME </div>
+    <div class="tier-items"></div>
+  </div>
+
+  <div class="tier" data-tier="A">
+    <div class="tier-label" style="background:#ffa502">A – BOLEH LAH</div>
+    <div class="tier-items"></div>
+  </div>
+
+  <div class="tier" data-tier="B">
+    <div class="tier-label" style="background:#1e90ff">B – OK NUMPANG</div>
+    <div class="tier-items"></div>
+  </div>
+
+  <div class="tier" data-tier="C">
+    <div class="tier-label" style="background:#2ed573">C – MEH~</div>
+    <div class="tier-items"></div>
+  </div>
+
+  <div class="tier" data-tier="D">
+    <div class="tier-label" style="background:#747d8c">D – APAAN NIH</div>
+    <div class="tier-items"></div>
+  </div>
+
+</div>
+
+<button id="revealBtn" class="reveal-btn">Reveal Cards</button>
+
+<h2 style="padding-left:10px;">Pool Anime (Drag ke Tier)</h2>
+<div id="pool"></div>
+
+<!-- Modal Edit Tier -->
+<div id="editModalBackdrop" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Edit nama tier</h3>
+    <input id="editModalInput" type="text" placeholder="Nama tier" />
+    <div class="modal-actions">
+      <button class="btn secondary" id="editModalCancel">Batal</button>
+      <button class="btn primary" id="editModalSave">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reveal -->
+<div id="revealBackdrop" class="reveal-backdrop hidden">
+  <div class="reveal-card">
+    <div class="reveal-glow"></div>
+    <div class="reveal-front">Reveal!</div>
+  </div>
+</div>
+
+<!-- (removed Tier reveal modal; effect now on Tier S cards) -->
+
+<!-- Zoom card overlay (click card in modal) -->
+<div id="zoomBackdrop" class="zoom-backdrop hidden" aria-hidden="true">
+  <div class="zoom-card">
+    <div class="zoom-glow"></div>
+    <img id="zoomImg" alt="zoomed" />
+    <div id="zoomTitle" class="zoom-title"></div>
+  </div>
+</div>
+
+<script>
+    const STORAGE_KEY = "tierMakerMangaPopularity";
+    // Sumber kartu yang akan dimuat ke pool (urutkan sesuai prioritas)
+    const CARD_SOURCES = [
+      "anime-cards-popularity.html",
+      "anime-cards-score.html",
+      "anime-cards.html" // fallback lama
+    ];
+  
+    const poolElement = document.getElementById("pool");
+    const tiersContainer = document.querySelector(".container");
+    const revealBtn = document.getElementById("revealBtn");
+    const revealBackdrop = document.getElementById("revealBackdrop");
+    const revealCard = revealBackdrop ? revealBackdrop.querySelector(".reveal-card") : null;
+    // Removed Tier reveal modal elements (now zoom on Tier S cards)
+    const tierAReveal = null;
+    const tierARevealCards = null;
+    const tierARevealClose = null;
+    const tierRevealTitle = null;
+    const zoomBackdrop = document.getElementById("zoomBackdrop");
+    const zoomImg = document.getElementById("zoomImg");
+    const zoomTitle = document.getElementById("zoomTitle");
+    let tierRevealTimer = null; // unused, kept for compatibility
+    let dragSuccess = false;
+    let currentEditTier = null;
+    let revealedOnce = true;  // default: sudah reveal
+    let revealing = false;
+    const modalBackdrop = document.getElementById("editModalBackdrop");
+    const modalInput = document.getElementById("editModalInput");
+    const modalSave = document.getElementById("editModalSave");
+    const modalCancel = document.getElementById("editModalCancel");
+
+    // ---- Load anime cards dari file HTML ----
+    async function loadCards() {
+      const temp = document.createElement("div");
+      const usedIds = new Set();
+      const usedNames = new Set();
+
+      for (const src of CARD_SOURCES) {
+        try {
+          const res = await fetch(src);
+          if (!res.ok) continue;
+          const html = await res.text();
+          temp.innerHTML = html;
+
+          const cards = temp.querySelectorAll(".anime-card");
+          cards.forEach(card => {
+            const nameEl = card.querySelector(".anime-name");
+            const nameKey = nameEl ? nameEl.textContent.trim().toLowerCase() : "";
+
+            // Hindari duplikat ID atau nama saat gabung dari beberapa sumber
+            if (usedIds.has(card.id) || (nameKey && usedNames.has(nameKey))) return;
+            usedIds.add(card.id);
+            if (nameKey) usedNames.add(nameKey);
+            card.draggable = true;
+            card.addEventListener("dragstart", dragStart);
+            card.addEventListener("dragend", dragEnd);
+            poolElement.appendChild(card);
+          });
+        } catch (err) {
+          console.warn(`Gagal memuat ${src}:`, err);
+        }
+      }
+
+      // Setelah semua kartu masuk pool → restore posisi dari localStorage kalau ada
+      restoreState();
+
+      // Pastikan pool selalu tampil (auto reveal)
+      showPool(true);
+    }
+  
+    // ---- Drag and Drop Logic ----
+    let dragged = null;
+  
+    function dragStart(e) {
+      dragged = this;
+      dragSuccess = false;
+      scrollToTiers();
+    }
+  
+    function handleDropArea(area) {
+      area.addEventListener("dragover", e => e.preventDefault());
+      area.addEventListener("drop", function () {
+        if (dragged) {
+          this.appendChild(dragged);
+          dragSuccess = true;
+          saveState();
+        }
+      });
+    }
+
+  function dragEnd() {
+    // Jika drop tidak berhasil ke area yang diizinkan, kembalikan ke pool
+    if (!dragSuccess) {
+      poolElement.appendChild(this);
+      saveState();
+    }
+  }
+
+  function setupEditableLabels() {
+    document.querySelectorAll(".tier").forEach(tier => {
+      const label = tier.querySelector(".tier-label");
+      if (!label) return;
+
+      // Simpan teks asli
+      const defaultText = (label.textContent || "").trim() || tier.dataset.tier;
+      label.dataset.defaultLabel = defaultText;
+
+      // Bangun ulang isi label: span teks + tombol gear
+      label.innerHTML = `
+        <span class="tier-label-text">${defaultText}</span>
+        <button class="edit-tier-btn" type="button" aria-label="Edit nama tier">⚙️</button>
+      `;
+
+      const editBtn = label.querySelector(".edit-tier-btn");
+      editBtn.addEventListener("click", () => openEditModal(tier));
+    });
+
+    // Modal actions
+    modalSave.addEventListener("click", saveModalEdit);
+    modalCancel.addEventListener("click", closeEditModal);
+    modalBackdrop.addEventListener("click", e => {
+      if (e.target === modalBackdrop) closeEditModal();
+    });
+    modalInput.addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        saveModalEdit();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        closeEditModal();
+      }
+    });
+
+    if (revealBtn) {
+      revealBtn.addEventListener("click", handleReveal);
+    }
+    if (zoomBackdrop) {
+      zoomBackdrop.addEventListener('click', (e) => {
+        if (e.target === zoomBackdrop) closeZoom();
+      });
+    }
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape") closeZoom();
+    });
+
+    // Bind click-to-zoom for cards inside Tier S
+    bindTierSZoom();
+  }
+
+  function openEditModal(tier) {
+    currentEditTier = tier;
+    const labelTextEl = tier.querySelector(".tier-label-text");
+    const currentText = labelTextEl ? labelTextEl.textContent.trim() : tier.dataset.tier;
+    modalInput.value = currentText;
+    modalBackdrop.classList.remove("hidden");
+    modalInput.focus();
+    modalInput.select();
+  }
+
+  function closeEditModal() {
+    modalBackdrop.classList.add("hidden");
+    currentEditTier = null;
+  }
+
+  function saveModalEdit() {
+    if (!currentEditTier) return;
+    const newText = (modalInput.value || "").trim();
+    const labelTextEl = currentEditTier.querySelector(".tier-label-text");
+    const label = currentEditTier.querySelector(".tier-label");
+    const fallback = label ? (label.dataset.defaultLabel || currentEditTier.dataset.tier) : currentEditTier.dataset.tier;
+    labelTextEl.textContent = newText || fallback;
+    closeEditModal();
+    saveState();
+  }
+
+  function scrollToTiers() {
+    if (!tiersContainer) return;
+    const top = tiersContainer.offsetTop - 10;
+    window.scrollTo({ top, behavior: "smooth" });
+  }
+
+  function bindTierSZoom() {
+    const tierSItems = document.querySelector('.tier[data-tier="S"] .tier-items');
+    if (!tierSItems || tierSItems.dataset.zoomBound === '1') return;
+    tierSItems.dataset.zoomBound = '1';
+    tierSItems.addEventListener('click', (e) => {
+      const card = e.target.closest('.anime-card');
+      if (!card || !tierSItems.contains(card)) return;
+      const img = card.querySelector('img');
+      const nameEl = card.querySelector('.anime-name');
+      openZoom(img ? img.src : '', nameEl ? nameEl.textContent.trim() : '');
+    });
+  }
+
+  function openZoom(src, title) {
+    if (!zoomBackdrop) return;
+    if (src) zoomImg.src = src; else zoomImg.removeAttribute('src');
+    zoomTitle.textContent = title || '';
+    zoomBackdrop.classList.remove('hidden');
+    zoomBackdrop.setAttribute('aria-hidden','false');
+  }
+
+  function closeZoom() {
+    if (!zoomBackdrop) return;
+    zoomBackdrop.classList.add('hidden');
+    zoomBackdrop.setAttribute('aria-hidden','true');
+  }
+
+  // removed old Tier reveal close helpers
+
+  function handleReveal() {
+    showPool();
+  }
+
+  function playRevealAnimation() {
+    showPool();
+  }
+
+  function showPool(skipSave = false) {
+    poolElement.classList.remove("hidden");
+    if (revealBackdrop) {
+      revealBackdrop.classList.add("hidden");
+      // Pastikan tidak muncul lagi setelah dibuka
+      revealBackdrop.remove();
+    }
+    if (revealBtn) revealBtn.classList.add("hidden");
+    revealedOnce = true;
+    if (!skipSave) {
+      saveState();
+    }
+  }
+
+    document.querySelectorAll(".tier-items, #pool").forEach(handleDropArea);
+    setupEditableLabels();
+  
+    // ---- LocalStorage: Save & Restore ----
+    function saveState() {
+      const state = {
+        pool: [],
+        tiers: {},
+        labels: {},
+        revealed: revealedOnce
+      };
+  
+      const pool = document.getElementById("pool");
+      state.pool = Array.from(pool.querySelectorAll(".anime-card")).map(c => c.id);
+  
+      document.querySelectorAll(".tier").forEach(tier => {
+        const name = tier.dataset.tier;
+        const container = tier.querySelector(".tier-items");
+        const ids = Array.from(container.querySelectorAll(".anime-card")).map(c => c.id);
+        state.tiers[name] = ids;
+
+        const labelEl = tier.querySelector(".tier-label");
+        if (labelEl) {
+          const textNode = labelEl.querySelector(".tier-label-text");
+          const text = textNode ? textNode.textContent.trim() : (labelEl.textContent || "").trim();
+          state.labels[name] = text || labelEl.dataset.defaultLabel || name;
+        }
+      });
+  
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        // console.log("Saved:", state);
+      } catch (e) {
+        console.warn("Gagal save localStorage:", e);
+      }
+    }
+  
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        console.warn("Gagal parse state:", e);
+        return null;
+      }
+    }
+  
+    function restoreState() {
+      const state = loadState();
+      if (!state) return;
+  
+      const pool = document.getElementById("pool");
+      const tiersMap = {};
+  
+      document.querySelectorAll(".tier").forEach(tier => {
+        const name = tier.dataset.tier;
+        tiersMap[name] = tier.querySelector(".tier-items");
+      });
+
+      // Jika pernah di-reveal, langsung tampilkan pool & sembunyikan tombol reveal
+      if (state.revealed) {
+        revealedOnce = true;
+        showPool(true); // skip save ulang
+        if (revealBackdrop) revealBackdrop.classList.add("hidden");
+      }
+
+      // Pulihkan nama label tier jika ada
+      if (state.labels && typeof state.labels === "object") {
+        Object.entries(state.labels).forEach(([name, text]) => {
+          const tier = document.querySelector(`.tier[data-tier="${name}"]`);
+          const labelEl = tier ? tier.querySelector(".tier-label-text") : null;
+          if (labelEl && text) labelEl.textContent = text;
+        });
+      }
+  
+      // 1. Pindahkan kartu ke pool sesuai list
+      if (Array.isArray(state.pool)) {
+        state.pool.forEach(id => {
+          const card = document.getElementById(id);
+          if (card) pool.appendChild(card);
+        });
+      }
+  
+      // 2. Pindahkan kartu ke tiap tier
+      if (state.tiers && typeof state.tiers === "object") {
+        Object.entries(state.tiers).forEach(([name, ids]) => {
+          const container = tiersMap[name];
+          if (!container || !Array.isArray(ids)) return;
+          ids.forEach(id => {
+            const card = document.getElementById(id);
+            if (card) container.appendChild(card);
+          });
+        });
+      }
+
+      // Fallback guard: jangan sampai pool & tombol sama-sama hilang
+      if (poolElement.classList.contains("hidden") && revealBtn && revealBtn.classList.contains("hidden")) {
+        showPool(true);
+      }
+
+      // Jika pool sudah kelihatan (misal state lama), pastikan overlay hilang
+      if (!poolElement.classList.contains("hidden")) {
+        revealedOnce = true;
+        revealing = false;
+        if (revealBackdrop) {
+          revealBackdrop.classList.add("hidden");
+          revealBackdrop.remove();
+        }
+        if (revealBtn) revealBtn.classList.add("hidden");
+        saveState();
+      }
+    }
+  
+    // Optional: tombol reset (kalau mau tambahin di HTML)
+    // function resetTier() {
+    //   localStorage.removeItem(STORAGE_KEY);
+    //   location.reload();
+    // }
+  
+    // Start
+    loadCards();
+  </script>
+  
+
+</body>
+</html>
