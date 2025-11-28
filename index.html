@@ -311,6 +311,28 @@
   .reveal-btn:hover {
     opacity: 0.95;
   }
+
+  .action-buttons {
+    display: flex;
+    gap: 10px;
+    padding: 0 10px 6px;
+    flex-wrap: wrap;
+  }
+
+  .download-btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #2ed573, #1abc9c);
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .download-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 </style>
 </head>
 
@@ -350,7 +372,10 @@
 
 </div>
 
-<button id="revealBtn" class="reveal-btn">Reveal Cards</button>
+<div class="action-buttons">
+  <button id="revealBtn" class="reveal-btn">Reveal Cards</button>
+  <button id="saveImageBtn" class="download-btn" type="button">Save Tier ke Foto</button>
+</div>
 
 <h2 style="padding-left:10px;">Pool Anime (Drag ke Tier)</h2>
 <div id="pool"></div>
@@ -386,6 +411,8 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
 <script>
     const STORAGE_KEY = "tierMakerMangaPopularity";
     // Sumber kartu yang akan dimuat ke pool (urutkan sesuai prioritas)
@@ -398,6 +425,7 @@
     const poolElement = document.getElementById("pool");
     const tiersContainer = document.querySelector(".container");
     const revealBtn = document.getElementById("revealBtn");
+    const saveImageBtn = document.getElementById("saveImageBtn");
     const revealBackdrop = document.getElementById("revealBackdrop");
     const revealCard = revealBackdrop ? revealBackdrop.querySelector(".reveal-card") : null;
     // Removed Tier reveal modal elements (now zoom on Tier S cards)
@@ -417,6 +445,7 @@
     const modalInput = document.getElementById("editModalInput");
     const modalSave = document.getElementById("editModalSave");
     const modalCancel = document.getElementById("editModalCancel");
+    const defaultSaveBtnText = saveImageBtn ? saveImageBtn.textContent.trim() : "";
 
     // ---- Load anime cards dari file HTML ----
     async function loadCards() {
@@ -523,6 +552,9 @@
     if (revealBtn) {
       revealBtn.addEventListener("click", handleReveal);
     }
+    if (saveImageBtn) {
+      saveImageBtn.addEventListener("click", saveTierAsImage);
+    }
     if (zoomBackdrop) {
       zoomBackdrop.addEventListener('click', (e) => {
         if (e.target === zoomBackdrop) closeZoom();
@@ -616,6 +648,48 @@
     revealedOnce = true;
     if (!skipSave) {
       saveState();
+    }
+  }
+
+  async function saveTierAsImage() {
+    const target = document.querySelector(".container");
+    if (!target || !window.html2canvas) {
+      alert("Fitur simpan belum siap. Coba refresh halaman.");
+      return;
+    }
+
+    if (saveImageBtn) {
+      saveImageBtn.disabled = true;
+      saveImageBtn.textContent = "Menyimpan...";
+    }
+
+    try {
+      const canvas = await html2canvas(target, {
+        backgroundColor: "#111",
+        scale: window.devicePixelRatio > 1 ? 2 : 1,
+        useCORS: true
+      });
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("Canvas kosong");
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const datePart = new Date().toISOString().replace(/[:T]/g, "-").split(".")[0];
+      link.href = url;
+      link.download = `tier-maker-${datePart}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+    } catch (err) {
+      console.error("Gagal menyimpan gambar:", err);
+      alert("Gagal menyimpan gambar. Coba ulangi.");
+    } finally {
+      if (saveImageBtn) {
+        saveImageBtn.disabled = false;
+        saveImageBtn.textContent = defaultSaveBtnText || "Save Tier ke Foto";
+      }
     }
   }
 
